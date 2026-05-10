@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         const address = process.env.NEXT_PUBLIC_WALLET_ADDRESS
         if (!address) {
             return NextResponse.json(
-                { error: 'WALLET_ADDRESS not configured' },
+                { error: 'NEXT_PUBLIC_WALLET_ADDRESS not configured' },
                 { status: 500 },
             )
         }
