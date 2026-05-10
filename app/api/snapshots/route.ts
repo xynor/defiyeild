@@ -52,8 +52,15 @@ export async function GET(request: Request) {
         })
     }
 
-    return NextResponse.json({
-        snapshots: data,
-        firstUnderlyingValue: data[0].underlying_value,
-    })
+    return NextResponse.json(
+        {
+            snapshots: data,
+            firstUnderlyingValue: data[0].underlying_value,
+        },
+        {
+            headers: {
+                'Cache-Control': 'no-store, max-age=0',
+            },
+        },
+    )
 }

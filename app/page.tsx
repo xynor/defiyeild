@@ -49,6 +49,7 @@ export default function HomePage() {
         try {
             const res = await fetch(
                 `/api/snapshots?address=${WALLET_ADDRESS}&days=7`,
+                { cache: 'no-store' },
             )
             if (!res.ok) {
                 const body = await res.json().catch(() => ({}))
