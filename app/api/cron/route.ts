@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
+import { prisma } from '@/lib/prisma'
 import { getUnderlyingValue } from '@/lib/aave'
 
 export const runtime = 'nodejs'
@@ -40,25 +40,26 @@ export async function POST(request: NextRequest) {
         // ---------- Upsert ----------
         const today = new Date().toISOString().split('T')[0] // "YYYY-MM-DD"
 
-        const supabase = createServerClient()
-        const { error } = await supabase.from('balance_snapshots').upsert(
-            {
-                address: address.toLowerCase(),
-                snapshot_date: today,
-                scaled_balance: scaledBalance.toString(),
-                liquidity_index: liquidityIndex.toString(),
-                underlying_value: underlyingValue.toString(),
+        await prisma.balanceSnapshot.upsert({
+            where: {
+                address_snapshotDate: {
+                    address: address.toLowerCase(),
+                    snapshotDate: new Date(today + 'T00:00:00Z'),
+                },
             },
-            { onConflict: 'address,snapshot_date' },
-        )
-
-        if (error) {
-            console.error('Supabase upsert failed:', error)
-            return NextResponse.json(
-                { error: `DB write failed: ${error.message}` },
-                { status: 500 },
-            )
-        }
+            create: {
+                address: address.toLowerCase(),
+                snapshotDate: new Date(today + 'T00:00:00Z'),
+                scaledBalance: scaledBalance.toString(),
+                liquidityIndex: liquidityIndex.toString(),
+                underlyingValue: underlyingValue.toString(),
+            },
+            update: {
+                scaledBalance: scaledBalance.toString(),
+                liquidityIndex: liquidityIndex.toString(),
+                underlyingValue: underlyingValue.toString(),
+            },
+        })
 
         return NextResponse.json({
             ok: true,

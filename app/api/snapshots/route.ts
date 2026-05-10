@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createBrowserClient, createServerClient } from '@/lib/supabase'
+import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,39 +23,39 @@ export async function GET(request: Request) {
         )
     }
 
-    const supabase = createBrowserClient()
-
-    // 1. Get first snapshot in range (for baseline)
-    // 2. Get all snapshots ordered by date
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
-    const cutoffStr = cutoff.toISOString().split('T')[0]
+    cutoff.setUTCHours(0, 0, 0, 0)
 
-    const { data, error } = await supabase
-        .from('balance_snapshots')
-        .select('*')
-        .eq('address', address.toLowerCase())
-        .gte('snapshot_date', cutoffStr)
-        .order('snapshot_date', { ascending: true })
+    const snapshots = await prisma.balanceSnapshot.findMany({
+        where: {
+            address: address.toLowerCase(),
+            snapshotDate: { gte: cutoff },
+        },
+        orderBy: { snapshotDate: 'asc' },
+    })
 
-    if (error) {
+    if (snapshots.length === 0) {
         return NextResponse.json(
-            { error: `Supabase query failed: ${error.message}` },
-            { status: 500 },
+            { snapshots: [], firstUnderlyingValue: 0 },
+            {
+                headers: { 'Cache-Control': 'no-store, max-age=0' },
+            },
         )
-    }
-
-    if (!data || data.length === 0) {
-        return NextResponse.json({
-            snapshots: [],
-            firstUnderlyingValue: 0,
-        })
     }
 
     return NextResponse.json(
         {
-            snapshots: data,
-            firstUnderlyingValue: data[0].underlying_value,
+            snapshots: snapshots.map((s) => ({
+                id: s.id,
+                address: s.address,
+                snapshot_date: s.snapshotDate.toISOString().split('T')[0],
+                scaled_balance: s.scaledBalance.toString(),
+                liquidity_index: s.liquidityIndex.toString(),
+                underlying_value: s.underlyingValue.toString(),
+                created_at: s.createdAt.toISOString(),
+            })),
+            firstUnderlyingValue: snapshots[0].underlyingValue,
         },
         {
             headers: {

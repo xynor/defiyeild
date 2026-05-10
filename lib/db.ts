@@ -1,24 +1,18 @@
-import { createServerClient } from '@/lib/supabase'
+import { prisma } from '@/lib/prisma'
 
 /**
- * Base URL for API calls from the browser.
+ * Fetch the last N days of snapshots for an address.
  */
-export async function getSnapshots(
-    address: string,
-    days = 7,
-): Promise<unknown> {
-    const supabase = createServerClient()
+export async function getSnapshots(address: string, days = 7) {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
-    const cutoffStr = cutoff.toISOString().split('T')[0]
+    cutoff.setUTCHours(0, 0, 0, 0)
 
-    const { data, error } = await supabase
-        .from('balance_snapshots')
-        .select('*')
-        .eq('address', address.toLowerCase())
-        .gte('snapshot_date', cutoffStr)
-        .order('snapshot_date', { ascending: true })
-
-    if (error) throw new Error(`Supabase query failed: ${error.message}`)
-    return data
+    return prisma.balanceSnapshot.findMany({
+        where: {
+            address: address.toLowerCase(),
+            snapshotDate: { gte: cutoff },
+        },
+        orderBy: { snapshotDate: 'asc' },
+    })
 }
