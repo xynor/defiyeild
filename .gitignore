@@ -1,0 +1,22 @@
+# Environment variables — never commit real values!
+.env.local
+.env*.local
+
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+
+# Debug
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
