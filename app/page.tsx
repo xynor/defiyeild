@@ -6,15 +6,17 @@ import type { BalanceSnapshot, ChartDataPoint } from '@/types'
 
 // Replace with your actual wallet address or configure via env
 const WALLET_ADDRESS =
-    process.env.NEXT_PUBLIC_WALLET_ADDRESS?.toLowerCase() ||
-    '0xYourAddressHere'.toLowerCase()
+    process.env.NEXT_PUBLIC_WALLET_ADDRESS?.toLowerCase() || ''
+
+// USDC has 6 decimals — chain values must be divided by 1e6 for display
+const USDC_DECIMALS = 1_000_000
 
 function mapToChartData(
     snapshots: BalanceSnapshot[],
     firstUnderlyingValue: number,
 ): ChartDataPoint[] {
     return snapshots.map((s) => {
-        const uv = Number(s.underlying_value)
+        const uv = Number(s.underlying_value) / USDC_DECIMALS
         return {
             date: new Date(s.snapshot_date + 'T00:00:00').toLocaleDateString(
                 'en-US',
@@ -37,6 +39,11 @@ export default function HomePage() {
     } | null>(null)
 
     const fetchData = useCallback(async () => {
+        if (!WALLET_ADDRESS) {
+            setError('WALLET_ADDRESS not configured — set NEXT_PUBLIC_WALLET_ADDRESS in environment variables')
+            setLoading(false)
+            return
+        }
         setLoading(true)
         setError(null)
         try {
@@ -49,10 +56,10 @@ export default function HomePage() {
             }
             const json = await res.json()
             const snapshots: BalanceSnapshot[] = json.snapshots || []
-            const first = Number(json.firstUnderlyingValue)
+            const first = Number(json.firstUnderlyingValue) / USDC_DECIMALS
 
             if (snapshots.length > 0) {
-                const current = Number(snapshots[snapshots.length - 1].underlying_value)
+                const current = Number(snapshots[snapshots.length - 1].underlying_value) / USDC_DECIMALS
                 const earnings = current - first
                 const pct = first > 0 ? (earnings / first) * 100 : 0
                 setSummary({
