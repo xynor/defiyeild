@@ -15,8 +15,11 @@ function mapToChartData(
     snapshots: BalanceSnapshot[],
     firstUnderlyingValue: number,
 ): ChartDataPoint[] {
+    let prevUV = firstUnderlyingValue
     return snapshots.map((s) => {
         const uv = Number(s.underlying_value) / USDC_DECIMALS
+        const dailyEarnings = uv - prevUV
+        prevUV = uv
         return {
             date: new Date(s.snapshot_date + 'T00:00:00').toLocaleDateString(
                 'en-US',
@@ -24,6 +27,7 @@ function mapToChartData(
             ),
             underlyingValue: uv,
             cumulativeEarnings: uv - firstUnderlyingValue,
+            dailyEarnings,
         }
     })
 }

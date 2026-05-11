@@ -1,8 +1,9 @@
 'use client'
 
 import {
-    AreaChart,
+    ComposedChart,
     Area,
+    Bar,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -89,7 +90,7 @@ export default function YieldChart({ data, loading, error }: Props) {
     return (
         <div className="rounded-2xl bg-gray-900/60 p-4">
             <ResponsiveContainer width="100%" height={400}>
-                <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                         <linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -121,7 +122,11 @@ export default function YieldChart({ data, loading, error }: Props) {
                         tick={{ fill: '#9ca3af', fontSize: 12 }}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(v: number) => `$${(v / 1000).toFixed(1)}k`}
+                        tickFormatter={(v: number) =>
+                            v >= 1000
+                                ? `$${(v / 1000).toFixed(1)}k`
+                                : `$${v.toFixed(2)}`
+                        }
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
@@ -145,7 +150,15 @@ export default function YieldChart({ data, loading, error }: Props) {
                         strokeWidth={2}
                         fill="url(#earningsGrad)"
                     />
-                </AreaChart>
+                    <Bar
+                        yAxisId="earnings"
+                        dataKey="dailyEarnings"
+                        name="Daily Earnings"
+                        fill="#f59e0b"
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={32}
+                    />
+                </ComposedChart>
             </ResponsiveContainer>
         </div>
     )
