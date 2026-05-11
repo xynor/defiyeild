@@ -8,13 +8,11 @@ datasource db {
 }
 
 model BalanceSnapshot {
-  id               String   @id @default(uuid()) @db.Uuid
-  address          String
-  snapshotDate     DateTime @map("snapshot_date") @db.Date
-  scaledBalance    Decimal  @map("scaled_balance") @db.Decimal(78, 0)
-  liquidityIndex   Decimal  @map("liquidity_index") @db.Decimal(78, 0)
-  underlyingValue  Decimal  @map("underlying_value") @db.Decimal(78, 0)
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id           String   @id @default(uuid()) @db.Uuid
+  address      String
+  snapshotDate DateTime @map("snapshot_date") @db.Date
+  balance      Decimal  @db.Decimal(78, 0)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   @@unique([address, snapshotDate])
   @@index([address, snapshotDate(sort: Desc)])

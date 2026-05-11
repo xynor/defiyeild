@@ -4,9 +4,7 @@ export interface BalanceSnapshot {
     id: string;
     address: string;
     snapshot_date: string; // ISO date
-    scaled_balance: string; // big number as string (ethers returns bigint)
-    liquidity_index: string;
-    underlying_value: string;
+    balance: string; // aEthUSDC balanceOf (bigint as string, 6 decimals)
     created_at: string;
 }
 

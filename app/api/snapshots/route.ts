@@ -8,8 +8,7 @@ export const dynamic = 'force-dynamic'
  * GET /api/snapshots?address=0x...&days=7
  *
  * Returns the last N days of balance snapshots, along with
- * the first day's underlying value so the frontend can compute
- * cumulative earnings.
+ * the first day's balance so the frontend can compute earnings.
  */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -37,7 +36,7 @@ export async function GET(request: Request) {
 
     if (snapshots.length === 0) {
         return NextResponse.json(
-            { snapshots: [], firstUnderlyingValue: 0 },
+            { snapshots: [], firstBalance: 0 },
             {
                 headers: { 'Cache-Control': 'no-store, max-age=0' },
             },
@@ -50,12 +49,10 @@ export async function GET(request: Request) {
                 id: s.id,
                 address: s.address,
                 snapshot_date: s.snapshotDate.toISOString().split('T')[0],
-                scaled_balance: s.scaledBalance.toString(),
-                liquidity_index: s.liquidityIndex.toString(),
-                underlying_value: s.underlyingValue.toString(),
+                balance: s.balance.toString(),
                 created_at: s.createdAt.toISOString(),
             })),
-            firstUnderlyingValue: snapshots[0].underlyingValue,
+            firstBalance: snapshots[0].balance,
         },
         {
             headers: {

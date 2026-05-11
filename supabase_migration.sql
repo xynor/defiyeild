@@ -8,9 +8,7 @@ CREATE TABLE IF NOT EXISTS balance_snapshots (
   id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   address         TEXT        NOT NULL,
   snapshot_date   DATE        NOT NULL,
-  scaled_balance  NUMERIC     NOT NULL,  -- aToken balance (constant unless deposit/withdraw)
-  liquidity_index NUMERIC     NOT NULL,  -- Aave Pool liquidityIndex (RAY precision)
-  underlying_value NUMERIC    NOT NULL,  -- scaled_balance × liquidity_index / 1e27
+  balance         NUMERIC     NOT NULL,  -- aEthUSDC balanceOf (interest-bearing, 6 decimals)
   created_at      TIMESTAMPTZ DEFAULT NOW(),
 
   CONSTRAINT unique_address_date UNIQUE (address, snapshot_date)

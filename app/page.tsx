@@ -13,20 +13,20 @@ const USDC_DECIMALS = 1_000_000
 
 function mapToChartData(
     snapshots: BalanceSnapshot[],
-    firstUnderlyingValue: number,
+    firstBalance: number,
 ): ChartDataPoint[] {
-    let prevUV = firstUnderlyingValue
+    let prevBalance = firstBalance
     return snapshots.map((s) => {
-        const uv = Number(s.underlying_value) / USDC_DECIMALS
-        const dailyEarnings = uv - prevUV
-        prevUV = uv
+        const bal = Number(s.balance) / USDC_DECIMALS
+        const dailyEarnings = bal - prevBalance
+        prevBalance = bal
         return {
             date: new Date(s.snapshot_date + 'T00:00:00').toLocaleDateString(
                 'en-US',
                 { month: 'short', day: 'numeric' },
             ),
-            underlyingValue: uv,
-            cumulativeEarnings: uv - firstUnderlyingValue,
+            underlyingValue: bal,
+            cumulativeEarnings: bal - firstBalance,
             dailyEarnings,
         }
     })
@@ -61,10 +61,10 @@ export default function HomePage() {
             }
             const json = await res.json()
             const snapshots: BalanceSnapshot[] = json.snapshots || []
-            const first = Number(json.firstUnderlyingValue) / USDC_DECIMALS
+            const first = Number(json.firstBalance) / USDC_DECIMALS
 
             if (snapshots.length > 0) {
-                const current = Number(snapshots[snapshots.length - 1].underlying_value) / USDC_DECIMALS
+                const current = Number(snapshots[snapshots.length - 1].balance) / USDC_DECIMALS
                 const earnings = current - first
                 const pct = first > 0 ? (earnings / first) * 100 : 0
                 setSummary({

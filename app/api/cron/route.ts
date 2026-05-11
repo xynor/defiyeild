@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getUnderlyingValue } from '@/lib/aave'
+import { getBalance } from '@/lib/aave'
 
 export const runtime = 'nodejs'
 
@@ -8,9 +8,7 @@ export const runtime = 'nodejs'
  * POST /api/cron
  *
  * Called daily by Vercel Cron Job.
- * Fetches the user's aEthUSDC scaled balance + Aave liquidityIndex,
- * computes the underlying USDC value, and upserts into Supabase.
- *
+ * Fetches the user's aEthUSDC balance and upserts into Supabase.
  * Protected by CRON_SECRET in Authorization header.
  */
 export async function POST(request: NextRequest) {
@@ -34,11 +32,10 @@ export async function POST(request: NextRequest) {
         }
 
         // ---------- On-chain ----------
-        const { scaledBalance, liquidityIndex, underlyingValue } =
-            await getUnderlyingValue(address)
+        const balance = await getBalance(address)
 
         // ---------- Upsert ----------
-        const today = new Date().toISOString().split('T')[0] // "YYYY-MM-DD"
+        const today = new Date().toISOString().split('T')[0]
 
         await prisma.balanceSnapshot.upsert({
             where: {
@@ -50,23 +47,17 @@ export async function POST(request: NextRequest) {
             create: {
                 address: address.toLowerCase(),
                 snapshotDate: new Date(today + 'T00:00:00Z'),
-                scaledBalance: scaledBalance.toString(),
-                liquidityIndex: liquidityIndex.toString(),
-                underlyingValue: underlyingValue.toString(),
+                balance: balance.toString(),
             },
             update: {
-                scaledBalance: scaledBalance.toString(),
-                liquidityIndex: liquidityIndex.toString(),
-                underlyingValue: underlyingValue.toString(),
+                balance: balance.toString(),
             },
         })
 
         return NextResponse.json({
             ok: true,
             date: today,
-            scaledBalance: scaledBalance.toString(),
-            liquidityIndex: liquidityIndex.toString(),
-            underlyingValue: underlyingValue.toString(),
+            balance: balance.toString(),
         })
     } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err)
