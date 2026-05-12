@@ -34,19 +34,21 @@ export async function POST(request: NextRequest) {
         // ---------- On-chain ----------
         const balance = await getBalance(address)
 
-        // ---------- Upsert ----------
-        const today = new Date().toISOString().split('T')[0]
+        // ---------- Upsert (record yesterday's balance) ----------
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+        const dateStr = yesterday.toISOString().split('T')[0]
 
         await prisma.balanceSnapshot.upsert({
             where: {
                 address_snapshotDate: {
                     address: address.toLowerCase(),
-                    snapshotDate: new Date(today + 'T00:00:00Z'),
+                    snapshotDate: new Date(dateStr + 'T00:00:00Z'),
                 },
             },
             create: {
                 address: address.toLowerCase(),
-                snapshotDate: new Date(today + 'T00:00:00Z'),
+                snapshotDate: new Date(dateStr + 'T00:00:00Z'),
                 balance: balance.toString(),
             },
             update: {
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             ok: true,
-            date: today,
+            date: dateStr,
             balance: balance.toString(),
         })
     } catch (err: unknown) {

@@ -17,5 +17,6 @@ export interface ChartDataPoint {
 
 export interface SnapshotsResponse {
     snapshots: BalanceSnapshot[];
-    firstUnderlyingValue: number;
+    firstBalance: number;
+    currentBalance: string | null; // on-chain live balance
 }

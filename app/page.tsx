@@ -14,9 +14,10 @@ const USDC_DECIMALS = 1_000_000
 function mapToChartData(
     snapshots: BalanceSnapshot[],
     firstBalance: number,
+    currentBalance: number | null, // on-chain live balance for "today"
 ): ChartDataPoint[] {
     let prevBalance = firstBalance
-    return snapshots.map((s) => {
+    const points: ChartDataPoint[] = snapshots.map((s) => {
         const bal = Number(s.balance) / USDC_DECIMALS
         const dailyEarnings = bal - prevBalance
         prevBalance = bal
@@ -30,6 +31,22 @@ function mapToChartData(
             dailyEarnings,
         }
     })
+
+    // Append today's live data point if currentBalance is available
+    if (currentBalance !== null) {
+        const todayStr = new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+        })
+        points.push({
+            date: todayStr,
+            underlyingValue: currentBalance,
+            cumulativeEarnings: currentBalance - firstBalance,
+            dailyEarnings: currentBalance - prevBalance,
+        })
+    }
+
+    return points
 }
 
 export default function HomePage() {
@@ -62,19 +79,29 @@ export default function HomePage() {
             const json = await res.json()
             const snapshots: BalanceSnapshot[] = json.snapshots || []
             const first = Number(json.firstBalance) / USDC_DECIMALS
+            const currentBalance: number | null =
+                json.currentBalance != null
+                    ? Number(json.currentBalance) / USDC_DECIMALS
+                    : null
 
-            if (snapshots.length > 0) {
-                const current = Number(snapshots[snapshots.length - 1].balance) / USDC_DECIMALS
-                const earnings = current - first
+            // Summary uses real-time currentBalance if available, else last snapshot
+            const displayBalance =
+                currentBalance ??
+                (snapshots.length > 0
+                    ? Number(snapshots[snapshots.length - 1].balance) /
+                    USDC_DECIMALS
+                    : 0)
+            if (snapshots.length > 0 || currentBalance !== null) {
+                const earnings = displayBalance - first
                 const pct = first > 0 ? (earnings / first) * 100 : 0
                 setSummary({
-                    currentBalance: current,
+                    currentBalance: displayBalance,
                     totalEarnings: earnings,
                     earningsPct: pct,
                 })
             }
 
-            setChartData(mapToChartData(snapshots, first))
+            setChartData(mapToChartData(snapshots, first, currentBalance))
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err)
             setError(msg)
