@@ -4,6 +4,33 @@ import { getBalance } from '@/lib/aave'
 
 export const runtime = 'nodejs'
 
+const MAX_RETRIES = 10
+const RETRY_DELAY_MS = 5_000
+
+/**
+ * Retry a function up to maxRetries times with a fixed delay between attempts.
+ */
+async function withRetry<T>(
+    fn: () => Promise<T>,
+    label: string,
+    maxRetries = MAX_RETRIES,
+    delayMs = RETRY_DELAY_MS,
+): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn()
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err)
+            console.error(
+                `[cron] ${label} attempt ${attempt}/${maxRetries} failed: ${msg}`,
+            )
+            if (attempt === maxRetries) throw err
+            await new Promise((r) => setTimeout(r, delayMs))
+        }
+    }
+    throw new Error('unreachable')
+}
+
 /**
  * POST /api/cron
  *
@@ -31,30 +58,37 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // ---------- On-chain ----------
-        const balance = await getBalance(address)
+        // ---------- On-chain (with retry) ----------
+        const balance = await withRetry(
+            () => getBalance(address),
+            'RPC getBalance',
+        )
 
-        // ---------- Upsert (record yesterday's balance) ----------
+        // ---------- Upsert (with retry) ----------
         const yesterday = new Date()
         yesterday.setDate(yesterday.getDate() - 1)
         const dateStr = yesterday.toISOString().split('T')[0]
 
-        await prisma.balanceSnapshot.upsert({
-            where: {
-                address_snapshotDate: {
-                    address: address.toLowerCase(),
-                    snapshotDate: new Date(dateStr + 'T00:00:00Z'),
-                },
-            },
-            create: {
-                address: address.toLowerCase(),
-                snapshotDate: new Date(dateStr + 'T00:00:00Z'),
-                balance: balance.toString(),
-            },
-            update: {
-                balance: balance.toString(),
-            },
-        })
+        await withRetry(
+            () =>
+                prisma.balanceSnapshot.upsert({
+                    where: {
+                        address_snapshotDate: {
+                            address: address.toLowerCase(),
+                            snapshotDate: new Date(dateStr + 'T00:00:00Z'),
+                        },
+                    },
+                    create: {
+                        address: address.toLowerCase(),
+                        snapshotDate: new Date(dateStr + 'T00:00:00Z'),
+                        balance: balance.toString(),
+                    },
+                    update: {
+                        balance: balance.toString(),
+                    },
+                }),
+            'DB upsert',
+        )
 
         return NextResponse.json({
             ok: true,
